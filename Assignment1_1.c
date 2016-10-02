@@ -2,6 +2,7 @@
 #include <mpi.h>
 
 double Trap(double left_endpt,double right_endpt,int trap_count,double base_len);
+double f(double x);
 
 int main(void){
 	int my_rank, comm_sz, n=1024, local_n;
@@ -58,4 +59,9 @@ double Trap(
 	estimate = estimate*base_len;
 
 	return estimate;
+}
+
+
+double f(double x){
+	return 2 * x + 1;
 }
