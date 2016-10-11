@@ -4,12 +4,13 @@
 
 void get_n (int* n, int my_rank);
 void get_elements (int* elements, int* local_elements, int n, MPI_Datatype type, int my_rank);
-void print_prefix_sum (int* prefixSums, int num );
+void print_prefix_sum (int* prefixSums, int num , int my_rank);
+void get_prefix_sums (int* local_elements, int* local_sums, int local_n, int my_rank, int comm_size);
 
 int main (void){
 	int number_of_elements, local_n;
 	int my_rank, comm_size;
-	int *elements, *local_elements, *prefix_sums;
+	int *elements, *local_elements, *prefix_sums, *local_sums;
 	MPI_Datatype type;
 
 	MPI_Init(NULL,NULL);
@@ -26,19 +27,20 @@ int main (void){
 	elements = malloc(number_of_elements * sizeof(int));
 	prefix_sums = malloc(number_of_elements * sizeof(int));
 	local_elements = malloc(local_n * sizeof(int));
+	local_sums = malloc(local_n * sizeof(int));
 
 	get_elements(elements, local_elements, number_of_elements, type, my_rank);
 
-	//int sum = 0;
-	//for (int i = 0; i < number_of_elements; i++){
-	//	sum += elements[i];
-	//	prefix_sums[i] = sum;
-	//}
+	get_prefix_sums(local_elements, local_sums, local_n, my_rank, comm_size);
 
-	//print_prefix_sum(prefix_sums,number_of_elements);
+	MPI_Gather(local_sums, 1, type, prefix_sums, 1, type, 0, MPI_COMM_WORLD);
+
+	print_prefix_sum(prefix_sums,number_of_elements,my_rank);
 
 	free(prefix_sums);
 	free(elements);
+	free(local_elements);
+	free(local_sums);
 
 	MPI_Finalize();
 	return 0;
@@ -65,11 +67,33 @@ void get_elements (int* elements, int* local_elements, int n, MPI_Datatype type,
 	MPI_Scatter(elements, 1, type, local_elements, 1, type, 0, MPI_COMM_WORLD);
 }
 
-void print_prefix_sum (int* prefix_sums, int num ){
+void print_prefix_sum (int* prefix_sums, int num, int my_rank ){
 
-	printf("Prefix Sums: ");
-	for (int i = 0; i < num; i++)
-		printf("%d ",prefix_sums[i]);
-	printf("\n");
+	if(my_rank == 0){
+		printf("Prefix Sums: ");
+		for (int i = 0; i < num; i++)
+			printf("%d ",prefix_sums[i]);
+		printf("\n");
+	}
+}
 
+void get_prefix_sums (int* local_elements, int* local_sums, int local_n, int my_rank, int comm_size){
+	int sum = 0;
+	for (int i = 0; i < local_n; i++){
+		sum += local_elements[i];
+		local_sums[i] = sum;
+	}
+
+	int last_element;
+
+	if (my_rank > 0 && my_rank <= comm_size - 1){
+		MPI_Recv(&last_element, 1,MPI_INT, my_rank-1, 0,MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		for(int i = 0; i < local_n; i++)
+			local_sums[i] = local_sums[i] + last_element;
+	}
+
+	if (my_rank >= 0 && my_rank < comm_size - 1){
+		last_element = local_sums[local_n - 1];
+		MPI_Send(&last_element, 1,MPI_INT, my_rank+1, 0,MPI_COMM_WORLD);
+	}
 }
