@@ -64,7 +64,7 @@ void generate_values(){
 	MPI_Scan(&local_prefix_sums[(num_elements/comm_sz) - 1],&a[(num_elements/comm_sz) - 1],1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
 
 	int *b = NULL;
-	b = (num_elements/comm_sz * sizeof(int));
+	b = malloc(num_elements/comm_sz * sizeof(int));
 	for (int i = 0; i < num_elements/comm_sz; i++){
 		sum += local_elements[i];
 		local_prefix_sums[i] = sum;
