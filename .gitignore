@@ -1,0 +1,6 @@
+// ignore everything
+*
+
+// but dont ignore anything with '.c' extensions
+!*.c
+!.gitignore
