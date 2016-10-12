@@ -63,20 +63,17 @@ void generate_values(){
 	a = malloc(num_elements/comm_sz * sizeof(int));
 	MPI_Scan(&local_prefix_sums[(num_elements/comm_sz) - 1],&a[(num_elements/comm_sz) - 1],1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
 
-	int *b = NULL;
-	b = malloc(num_elements/comm_sz * sizeof(int));
-	for (int i = 0; i < num_elements/comm_sz; i++){
-		sum += local_elements[i];
-		local_prefix_sums[i] = sum;
+	for(int i = num_elements/comm_sz - 2;  i >= 0; i-- ){
+		int sum = 0;
+		for(int j = num_elements/comm_sz - 1; j > i; j-- ){
+			sum += local_elements[j];
+		}
+		a[i] = a[(num_elements/comm_sz) - 1] - sum;
 	}
 	
-	printf("Prefix Sums: %d : ", my_rank);
-	for (int i = 0; i < num_elements/comm_sz; i++){
-		printf("%d ", a[i]);
-	}
-	printf("\n");
+	// Gather all parts of local sum and save in final 'sum' list
+	MPI_Gather(a, num_elements/comm_sz, MPI_INT, prefix_sums, num_elements/comm_sz, MPI_INT, 0, MPI_COMM_WORLD);
 	free(a);
-	free(b);
 }
 
 void print_prefix_sums(){
@@ -88,11 +85,11 @@ void print_prefix_sums(){
 		}
 		printf("\n");
 
-		//printf("Prefix Sums: ");
-		//for (int i = 0; i < num_elements; i++){
-		//	printf("%d ", prefix_sums[i]);
-		//}
-		//printf("\n");
+		printf("Prefix Sums: ");
+		for (int i = 0; i < num_elements; i++){
+			printf("%d ", prefix_sums[i]);
+		}
+		printf("\n");
 	}
 
 
